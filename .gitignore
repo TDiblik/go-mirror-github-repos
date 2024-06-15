@@ -1,1 +1,5 @@
 .env
+go-mirror-github-repos.exe
+go-mirror-github-repos
+.DS_Store
+build
