@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// Includes only types used, the API returns MUCH more
+// Includes only fields used, the API returns MUCH more
 type Repository struct {
 	Name     string `json:"name"`
 	FullName string `json:"full_name"`
