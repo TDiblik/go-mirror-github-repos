@@ -8,28 +8,29 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
 
 func main() {
+	// Load env variables
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 		return
 	}
+	GH_TOKEN := loadEnvRequired("GH_TOKEN")
+	MIRROR_PATH := loadEnvRequired("MIRROR_PATH")
+	EXCLUDED_ORGS, EXCLUDED_ORGS_RAW := loadEnvList("EXCLUDED_ORGS")
+	EXCLUDED_REPOSITORIES, EXCLUDED_REPOSITORIES_RAW := loadEnvList("EXCLUDED_REPOSITORIES")
+	log.Println("Running with the following environment variables:")
+	log.Println("	MIRROR_PATH: \"" + MIRROR_PATH + "\"")
+	log.Println("	EXCLUDED_ORGS: \"" + EXCLUDED_ORGS_RAW + "\"")
+	log.Println("	EXCLUDED_REPOSITORIES_ENV: \"" + EXCLUDED_REPOSITORIES_RAW + "\"")
 
-	GH_TOKEN := os.Getenv("GH_TOKEN")
-	if len(GH_TOKEN) == 0 {
-		log.Fatal("GH_TOKEN cannot be empty")
-		return
-	}
-	MIRROR_PATH := os.Getenv("MIRROR_PATH")
-	if len(MIRROR_PATH) == 0 {
-		log.Fatal("MIRROR_PATH cannot be empty")
-		return
-	}
-
+	// Get list of repositories
 	req, err := http.NewRequest("GET", "https://api.github.com/user/repos", nil)
 	if err != nil {
 		log.Fatalf("error creating /user/repos http request: %s\n", err)
@@ -49,6 +50,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Parse the list
 	var repos []Repository
 	err = json.Unmarshal(data, &repos)
 	if err != nil {
@@ -57,7 +59,17 @@ func main() {
 	}
 	log.Println("Successfuly called and parsed /user/repos")
 
+	// Clone/Update each repo
 	for _, repo := range repos {
+		if slices.Contains(EXCLUDED_ORGS, repo.Owner.Login) {
+			log.Println("skipping " + repo.FullName + ", because it's inside the EXCLUDED_ORGS env variable")
+			continue
+		}
+		if slices.Contains(EXCLUDED_REPOSITORIES, repo.FullName) {
+			log.Println("skipping " + repo.FullName + ", because it's inside the EXCLUDED_REPOSITORIES env variable")
+			continue
+		}
+
 		log.Println("running for " + repo.FullName)
 		command := "cd \"" + MIRROR_PATH + "\"; "
 
@@ -100,7 +112,7 @@ func main() {
 				git reset --hard "origin/$branch"
 			done;
 			
-			git checkout "$base_branch"
+			git checkout "$base_branch"; 
 		`
 
 		log.Println("started work...")
@@ -111,6 +123,29 @@ func main() {
 		}
 		log.Println("Result of the commands executed: \n ----------------- \n", string(stdout), "-----------------")
 	}
+}
+
+func loadEnvRequired(env_name string) string {
+	env_value := os.Getenv(env_name)
+	if len(env_value) == 0 {
+		log.Fatal(env_name + " env variable cannot be empty")
+		os.Exit(1)
+	}
+	return env_value
+}
+
+func loadEnvList(env_name string) ([]string, string) {
+	env_value_parsed := make([]string, 0)
+	env_value_raw := os.Getenv(env_name)
+	if len(env_value_raw) != 0 {
+		env_value_parsed = strings.Split(env_value_raw, ",")
+
+		for i, value := range env_value_parsed {
+			env_value_parsed[i] = strings.TrimSpace(value)
+		}
+	}
+
+	return env_value_parsed, env_value_raw
 }
 
 func doesPathExists(path string) (bool, error) {
