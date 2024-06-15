@@ -30,6 +30,17 @@ func main() {
 	log.Println("	EXCLUDED_ORGS: \"" + EXCLUDED_ORGS_RAW + "\"")
 	log.Println("	EXCLUDED_REPOSITORIES_ENV: \"" + EXCLUDED_REPOSITORIES_RAW + "\"")
 
+	// Check that env variables are valid
+	mirror_path_exists, err := pathExists(MIRROR_PATH)
+	if err != nil {
+		log.Fatalf("unable to find out whether path (%s) exists: %s", MIRROR_PATH, err)
+		os.Exit(1)
+	}
+	if !mirror_path_exists {
+		log.Fatalf("the `MIRROR_PATH` is set to %s, however, it does not exist", MIRROR_PATH)
+		os.Exit(1)
+	}
+
 	// Get list of repositories
 	req, err := http.NewRequest("GET", "https://api.github.com/user/repos", nil)
 	if err != nil {
@@ -74,7 +85,7 @@ func main() {
 		command := "cd \"" + MIRROR_PATH + "\"; "
 
 		owner_directory := filepath.Join(MIRROR_PATH, repo.Owner.Login)
-		owner_directory_exists, err := doesPathExists(owner_directory)
+		owner_directory_exists, err := pathExists(owner_directory)
 		if err != nil {
 			log.Fatalf("unable to find out whether path (%s) exists: %s", owner_directory, err)
 			os.Exit(1)
@@ -86,7 +97,7 @@ func main() {
 		command += "cd \"" + repo.Owner.Login + "\"; "
 
 		repo_directory := filepath.Join(MIRROR_PATH, repo.Name)
-		repo_directory_exists, err := doesPathExists(repo_directory)
+		repo_directory_exists, err := pathExists(repo_directory)
 		if err != nil {
 			log.Fatalf("unable to find out whether path (%s) exists: %s", repo_directory, err)
 			os.Exit(1)
@@ -148,7 +159,7 @@ func loadEnvList(env_name string) ([]string, string) {
 	return env_value_parsed, env_value_raw
 }
 
-func doesPathExists(path string) (bool, error) {
+func pathExists(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if err == nil {
 		return true, nil
