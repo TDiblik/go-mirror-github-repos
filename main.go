@@ -121,4 +121,8 @@ func main() {
 		}
 		log.Println("Result of the commands executed: \n ----------------- \n", string(stdout), "-----------------")
 	}
+
+	log.Println("----------------------")
+	log.Println("| Finished mirroring |")
+	log.Println("----------------------")
 }
