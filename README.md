@@ -24,4 +24,4 @@ It doesn't have any sort of functionality to run automatically, so you have to s
 - Create the `MIRROR_PATH`
   - This is mine: `mkdir ~/go-mirror-github-repos/mirror/`
 - Setup a cron job to run the program at a desired time
-  - This is mine: `0 1 * * * PATH=/usr/local/bin:/usr/bin:/bin /home/{USERNAME}/go-mirror-github-repos/go-mirror-github-repos > /home/{USERNAME}/go-mirror-github-repos/log.txt 2>&1`
+  - This is mine: `0 1 * * * cd /home/{USERNAME}/go-mirror-github-repos && PATH=/usr/local/bin:/usr/bin:/bin /home/{USERNAME}/go-mirror-github-repos/go-mirror-github-repos > /home/{USERNAME}/go-mirror-github-repos/log.txt 2>&1`
