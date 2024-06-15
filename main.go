@@ -9,7 +9,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"slices"
-	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -31,11 +30,7 @@ func main() {
 	log.Println("	EXCLUDED_REPOSITORIES_ENV: \"" + EXCLUDED_REPOSITORIES_RAW + "\"")
 
 	// Check that env variables are valid
-	mirror_path_exists, err := pathExists(MIRROR_PATH)
-	if err != nil {
-		log.Fatalf("unable to find out whether path (%s) exists: %s", MIRROR_PATH, err)
-		os.Exit(1)
-	}
+	mirror_path_exists := pathExistsDef(MIRROR_PATH)
 	if !mirror_path_exists {
 		log.Fatalf("the `MIRROR_PATH` is set to %s, however, it does not exist", MIRROR_PATH)
 		os.Exit(1)
@@ -85,11 +80,7 @@ func main() {
 		command := "cd \"" + MIRROR_PATH + "\"; "
 
 		owner_directory := filepath.Join(MIRROR_PATH, repo.Owner.Login)
-		owner_directory_exists, err := pathExists(owner_directory)
-		if err != nil {
-			log.Fatalf("unable to find out whether path (%s) exists: %s", owner_directory, err)
-			os.Exit(1)
-		}
+		owner_directory_exists := pathExistsDef(owner_directory)
 		if !owner_directory_exists {
 			log.Println("will freshly create: ", repo.Owner.Login)
 			command += "mkdir \"" + repo.Owner.Login + "\"; "
@@ -97,11 +88,7 @@ func main() {
 		command += "cd \"" + repo.Owner.Login + "\"; "
 
 		repo_directory := filepath.Join(MIRROR_PATH, repo.Name)
-		repo_directory_exists, err := pathExists(repo_directory)
-		if err != nil {
-			log.Fatalf("unable to find out whether path (%s) exists: %s", repo_directory, err)
-			os.Exit(1)
-		}
+		repo_directory_exists := pathExistsDef(repo_directory)
 		if !repo_directory_exists {
 			log.Println("will freshly clone: ", repo.FullName)
 			command += "git clone https://" + GH_TOKEN + "@github.com/" + repo.FullName + ".git; "
@@ -134,38 +121,4 @@ func main() {
 		}
 		log.Println("Result of the commands executed: \n ----------------- \n", string(stdout), "-----------------")
 	}
-}
-
-func loadEnvRequired(env_name string) string {
-	env_value := os.Getenv(env_name)
-	if len(env_value) == 0 {
-		log.Fatal(env_name + " env variable cannot be empty")
-		os.Exit(1)
-	}
-	return env_value
-}
-
-func loadEnvList(env_name string) ([]string, string) {
-	env_value_parsed := make([]string, 0)
-	env_value_raw := os.Getenv(env_name)
-	if len(env_value_raw) != 0 {
-		env_value_parsed = strings.Split(env_value_raw, ",")
-
-		for i, value := range env_value_parsed {
-			env_value_parsed[i] = strings.TrimSpace(value)
-		}
-	}
-
-	return env_value_parsed, env_value_raw
-}
-
-func pathExists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil
-	}
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-	return false, err
 }
